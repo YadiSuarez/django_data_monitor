@@ -1,26 +1,37 @@
 from django.shortcuts import render
-
+import json
 # Create your views here.
 from django.http import HttpResponse
 import requests
 from django.conf import settings
+from django.contrib.auth.decorators import login_required
 
+@login_required
 def index(request):
 
-    response = requests.get(settings.API_URL)  # URL de la API // esta respuesta es sincrona.
-    posts = response.json()  # Convertir la respuesta a JSON
+    response = requests.get(settings.API_URL)
+    posts = response.json()
 
-    # Número total de respuestas
+    # Total de votos
     total_responses = sum(value for key, value in posts.items() if key.isdigit())
 
-    productoA = posts.get("1",0);
-    productoB = posts.get("2",0);
-    productoC = posts.get("3",0);
+    # Datos de productos
+    productos = [
+        {"nombre": "Diseño de Samurai", "votos": posts.get("1", 0)},
+        {"nombre": "Diseño de Joker",   "votos": posts.get("2", 0)},
+        {"nombre": "Diseño de Medusa",  "votos": posts.get("3", 0)},
+    ]
+
+    # Calcular porcentajes y añadirlos al diccionario
+    for producto in productos:
+        if total_responses > 0:
+            producto["porcentaje"] = str(round(producto["votos"] / total_responses * 100, 2))+ "%"
+        else:
+            producto["porcentaje"] = 0.0
+
     data = {
-        'title': "Landing Page' Dashboard",
-        'total_responses': total_responses,
-        'productoA': productoA,
-        'productoB': productoB, 
-        'productoC': productoC,
+        "title": "Landing Page' Dashboard",
+        "total_responses": total_responses,
+        "productos": productos,
     }
     return render(request, 'dashboard/index.html', data)
